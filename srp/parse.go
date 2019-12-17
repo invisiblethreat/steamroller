@@ -9,6 +9,11 @@ func parse(payload []byte) (SteamRemotePlay, error) {
 	srp := SteamRemotePlay{}
 	offset := 0
 
+	version, err := getVersion(&offset, payload)
+	if err != nil {
+		return srp, newParseError(offset, err.Error())
+	}
+	srp.Version = version
 	name, err := getName(&offset, payload)
 	if err != nil {
 		return srp, newParseError(offset, err.Error())
@@ -36,7 +41,10 @@ func parse(payload []byte) (SteamRemotePlay, error) {
 	srp.Amplification = amp
 
 	return srp, nil
+}
 
+func getVersion(offset *int, payload []byte) (int, error) {
+	return int(payload[8]), nil
 }
 
 func getName(offset *int, payload []byte) (string, error) {

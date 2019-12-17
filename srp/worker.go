@@ -13,7 +13,7 @@ import (
 
 // Worker checks the disposition of a host:port:protocol tuple and sends the
 // result to the ResultHandler
-func Worker(input chan expandaddr.SingleTarget, output chan SteamRemotePlay, unknown chan []byte, wg *sync.WaitGroup) {
+func Worker(input <-chan expandaddr.SingleTarget, output chan<- SteamRemotePlay, unknown chan<- Unknown, wg *sync.WaitGroup) {
 	for target := range input {
 		raddr := net.UDPAddr{IP: net.ParseIP(target.Addr),
 			Port: target.Port}
@@ -36,23 +36,23 @@ func Worker(input chan expandaddr.SingleTarget, output chan SteamRemotePlay, unk
 			continue
 		}
 
-		if !bytes.Equal(serverHello, res[0:len(serverHello)]) {
-			unknown <- res
-			continue
+		remoteHello := res[0:len(serverHello)]
+		if !bytes.Equal(serverHello, remoteHello) {
+			if bytes.Equal(emptyResponse, res[0:len(emptyResponse)]) {
+				wg.Done()
+				continue
+			} else {
+				unknown <- Unknown{
+					Target:  target.Addr,
+					Port:    target.Port,
+					Plugin:  PluginString,
+					Proto:   target.Proto,
+					Payload: fmt.Sprintf("%x", res)}
+				continue
+			}
 		}
 		parsed, _ := parse(res)
-
+		parsed.Target = target.Addr
 		output <- parsed
 	}
 }
-
-/*
-func buildSrpResult(t SingleTarget, s SteamRemotePlay) Result {
-	return Result{Addr: t.Addr, Proto: t.Proto, TimeStamp: time.Now().UTC(),
-		SteamRemotePlay: &s, Plugin: PluginString}
-}
-func buildUnknownResult(t SingleTarget, b []byte) Result {
-	return Result{Addr: t.Addr, Proto: t.Proto, TimeStamp: time.Now().UTC(),
-		Unknown: fmt.Sprintf("%x", b), Plugin: PluginString}
-}
-*/

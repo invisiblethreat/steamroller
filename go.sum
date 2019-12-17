@@ -2,3 +2,4 @@ github.com/invisiblethreat/expandaddr v0.0.0-20191217111351-7fff50d65879 h1:sHWO
 github.com/invisiblethreat/expandaddr v0.0.0-20191217111351-7fff50d65879/go.mod h1:PzKKXp4oHy/6T+Va61JRgunGtRjc/L9sNH/GkP1TqMc=
 github.com/invisiblethreat/expandaddr v0.0.0-20191217120339-7f5c53392fc2 h1:fUmOxtfTKBU+4ZTrbQeSQeeXC5vgmYL7BXikll+Io0o=
 github.com/invisiblethreat/expandaddr v0.0.0-20191217120339-7f5c53392fc2/go.mod h1:PzKKXp4oHy/6T+Va61JRgunGtRjc/L9sNH/GkP1TqMc=
+github.com/kyleconroy/sqlc v0.0.0-devel h1:aof1hld6DW1BqN79AxnMbTTt6XywtHg7uxosdTzl2Kw=
