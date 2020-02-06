@@ -5,6 +5,7 @@ const (
 	PluginProto  = "udp4"
 	PluginString = "steam_remote_play"
 	osWin        = "Windows"
+	osUnknown    = "Unknown/Probably Windows"
 	osMac        = "MacOS"
 	osLinux      = "Linux"
 
@@ -14,12 +15,16 @@ const (
 	linuxBranch          = byte(0xc6)
 	winBranch            = byte(0x10)
 	macBranch            = byte(0xac)
+	unknownBranch        = byte(0x0a)
+	unknownBranchNext    = byte(0x40)
+	badBranch            = byte(0x4a)
 	null                 = byte(0x00)
 	stopAfterNull        = byte(0x22)
 	helloAndUnknownBytes = 26
 	winFillerBytes       = 33
 	linuxFillerBytes     = 42
 	macFillerBytes       = 42
+	unknownFillerBytes   = 33
 	versionOffset        = 8
 	osOffset             = 3
 	addrOffset           = 2
@@ -34,4 +39,4 @@ var clientHello = []byte{0xff, 0xff, 0xff, 0xff, 0x21, 0x4c, 0x5f, 0xa0, 0x05,
 var serverHello = []byte{0xff, 0xff, 0xff, 0xff, 0x21, 0x4c, 0x5f, 0xa0}
 
 var emptyResponse = []byte{0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-	 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00}
+	0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00}

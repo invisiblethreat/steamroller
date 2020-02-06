@@ -3,9 +3,12 @@ package srp
 import (
 	"errors"
 	"fmt"
+
+	"github.com/sirupsen/logrus"
 )
 
 func parse(payload []byte) (SteamRemotePlay, error) {
+	logrus.Debugf("Payload: %x", payload)
 	srp := SteamRemotePlay{}
 	offset := 0
 
@@ -13,31 +16,37 @@ func parse(payload []byte) (SteamRemotePlay, error) {
 	if err != nil {
 		return srp, newParseError(offset, err.Error())
 	}
+	logrus.Debugf("Version: %d", version)
 	srp.Version = version
 	name, err := getName(&offset, payload)
 	if err != nil {
 		return srp, newParseError(offset, err.Error())
 	}
+	logrus.Debugf("Name: %s", name)
 	srp.Name = name
 
 	os, err := getOs(&offset, payload)
 	if err != nil {
 		return srp, newParseError(offset, err.Error())
 	}
+	logrus.Debugf("OS: %s", os)
 	srp.OS = os
 
 	macs, err := getMacs(&offset, payload)
 	if err != nil {
 		return srp, newParseError(offset, err.Error())
 	}
+	logrus.Debugf("MACs %#v", macs)
 	srp.MACs = macs
 
 	addrs, err := getAddrs(&offset, payload)
 	if err != nil {
 		return srp, newParseError(offset, err.Error())
 	}
+	logrus.Debugf("Addrs: %v", addrs)
 	srp.Addrs = addrs
 	amp := getAmplification(offset)
+	logrus.Debugf("Apmlification: %f", amp)
 	srp.Amplification = amp
 
 	return srp, nil
@@ -84,27 +93,38 @@ func safeAdvance(slice []byte, current *int, next int) error {
 
 func getOs(offset *int, payload []byte) (string, error) {
 	var os string
-	var jumpBytes int
+
 	off := *offset
 	osBranch := payload[off+osOffset]
 
 	if osBranch == winBranch {
-		os = osWin
-		jumpBytes = winFillerBytes
+		*offset = off + winFillerBytes
+		return osWin, nil
 	}
 
 	if osBranch == linuxBranch {
-		os = osLinux
-		jumpBytes = linuxFillerBytes
+		*offset = off + linuxFillerBytes
+		return osLinux, nil
 	}
 
 	if osBranch == macBranch {
-		os = osMac
-		jumpBytes = macFillerBytes
+		*offset = off + macFillerBytes
+		return osMac, nil
+
 	}
 
-	*offset = off + jumpBytes
-	return os, nil
+	if osBranch == unknownBranch {
+		next := payload[off+osOffset+1]
+		if next == unknownBranchNext {
+			*offset = off + unknownFillerBytes
+			return osUnknown, nil
+		} else if next == badBranch {
+			return os, errors.New(fmt.Sprintf("Known bad byte: %x", next))
+		}
+
+	}
+
+	return os, errors.New(fmt.Sprintf("Unknown OS byte: %x", osBranch))
 }
 
 func getMacs(offset *int, payload []byte) ([]string, error) {
@@ -115,15 +135,30 @@ func getMacs(offset *int, payload []byte) ([]string, error) {
 	off++
 	macs := []string{}
 	for (currentByte != addrDelim) && (currentByte != addrLast) {
+		if off+length >= len(payload) {
+			return macs, errors.New("Bad parsing causing index overflow")
+		}
 		newMac := string(payload[off : off+length])
 		macs = append(macs, newMac)
 		off += length
+		if off >= len(payload) {
+			return macs, errors.New("Bad parsing causing index overflow")
+		}
 		currentByte = payload[off]
 		if currentByte == macDelim {
 			off++
+			if off >= len(payload) {
+				return macs, errors.New("Bad parsing causing index overflow")
+			}
 			length = int(payload[off])
 			off++
+			if off >= len(payload) {
+				return macs, errors.New("Bad parsing causing index overflow")
+			}
 			currentByte = payload[off]
+		}
+		if off >= len(payload) {
+			return macs, errors.New("Bad parsing causing index overflow")
 		}
 
 	}
@@ -138,12 +173,21 @@ func getAddrs(offset *int, payload []byte) ([]string, error) {
 	for !done {
 		//jump 2, delimiter is a2/aa 01
 		off += addrOffset
+		if off >= len(payload) {
+			return addrs, errors.New("Bad parsing causing index overflow")
+		}
 		length := int(payload[off])
 		off++
+		if off+length >= len(payload) {
+			return addrs, errors.New("Bad parsing causing index overflow")
+		}
 		newAddr := string(payload[off : off+length])
 		addrs = append(addrs, newAddr)
 
 		off = off + length
+		if off >= len(payload) {
+			return addrs, errors.New("Bad parsing causing index overflow")
+		}
 		currentByte := payload[off]
 		if currentByte == addrLast {
 			off += addrOffset

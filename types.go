@@ -15,3 +15,11 @@ type Result struct {
 	SteamRemotePlay *srp.SteamRemotePlay `json:"steam_remote_play,omitempty"`
 	Unknown         string               `json:"unknown,omitempty"`
 }
+
+var modes = []string{
+	"srp",
+}
+
+type Mode interface {
+	Run()
+}
